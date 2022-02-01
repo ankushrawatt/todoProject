@@ -16,9 +16,8 @@ type LoginUser struct {
 	Password string `db:"password" json:"password"`
 }
 
-type CreateTask struct {
-	Description string `db:"description" json:"description"`
-	Date        string `db:"date" json:"date"`
-	UserId      string `db:"userid" json:"userId"`
-	TaskName    string `db:"taskname" json:"taskName"`
+type TodoTask struct {
+	Task string `db:"task" json:"task"`
+	Des  string `db:"des" json:"des"`
+	Date string `db:"date" json:"date"`
 }

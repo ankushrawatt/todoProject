@@ -3,18 +3,41 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"net/http"
-	"os"
+	"time"
 	"todoproject/database/helper"
 	"todoproject/model"
 )
 
-func CreateToken(user string) (string, error) {
-	var err error
-	os.Setenv("ACCESS_KEY", "")
+var mySigningKey = []byte("secret_key")
 
-	return "", err
+type Claims struct {
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
+func CreateToken(userid string) (string, error) {
+	id := uuid.New()
+	err := helper.CreateSession(id.String(), userid)
+	if err != nil {
+		return "", err
+	}
+
+	return id.String(), nil
+
+	//token := jwt.New(jwt.SigningMethodHS256)
+	//claims := token.Claims.(jwt.MapClaims)
+	//claims["authorized"] = true
+	//claims["user"] = userid
+	//claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+	//tokenString, err := token.SignedString(mySigningKey)
+	//if err != nil {
+	//	fmt.Errorf("Something went wrong %s", err.Error())
+	//	return "", err
+	//}
+	//return tokenString, nil
 }
 
 func Signup(writer http.ResponseWriter, request *http.Request) {
@@ -48,10 +71,10 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 	loginUser, loginErr := helper.Login(Cred.Email, Cred.Password)
 	if loginErr != nil {
 		writer.WriteHeader(http.StatusUnauthorized)
-		writer.Write([]byte(fmt.Sprintf("WRONG CREDENTIOALS")))
+		writer.Write([]byte(fmt.Sprintf("WRONG CREDENTIALS")))
 		return
 	}
-	jsonData, jsonErr := json.Marshal(loginUser)
+	_, jsonErr := json.Marshal(loginUser)
 	if jsonErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
@@ -62,17 +85,41 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	writer.Write([]byte(fmt.Sprintf("Tokken: %s", token)))
-	writer.Write(jsonData)
+	//writer.Write(jsonData)
+
+	//trying cookie
+	//expirationTime := time.Now().Add(time.Minute * 20)
+	//claims := &Claims{
+	//	Username: loginUser,
+	//	StandardClaims: jwt.StandardClaims{
+	//		ExpiresAt: expirationTime.Unix(),
+	//	},
+	//}
+	//token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	//tokenString, err := token.SignedString(jwtkey)
+	//if err != nil {
+	//	writer.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	//http.SetCookie(writer, &http.Cookie{
+	//	Name:    "token",
+	//	Value:   tokenString,
+	//	Expires: expirationTime,
+	//})
+
+	writer.Write([]byte(fmt.Sprintf(" WELCOME userid: %s", loginUser)))
+
 }
 
 func CreateTask(writer http.ResponseWriter, request *http.Request) {
-	var task model.CreateTask
+	var task model.TodoTask
 	err := json.NewDecoder(request.Body).Decode(&task)
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	todo, todoErr := helper.CreateTodo(task.Description, task.UserId, task.Date, task.TaskName)
+	userkey := request.Header.Get("userid")
+	todo, todoErr := helper.CreateTodo(task.Des, userkey, task.Task, task.Date)
 	if todoErr != nil {
 		writer.WriteHeader(http.StatusUnauthorized)
 		return
@@ -84,13 +131,9 @@ func UpdateTask(writer http.ResponseWriter, request *http.Request) {
 }
 
 func AllTask(writer http.ResponseWriter, request *http.Request) {
-	var todo model.CreateTask
-	err := json.NewDecoder(request.Body).Decode(&todo)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	tasks, taskErr := helper.TodoList(todo.UserId)
+
+	userkey := request.Header.Get("userid")
+	tasks, taskErr := helper.TodoList(userkey)
 	if taskErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
@@ -103,14 +146,11 @@ func AllTask(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(jsonData)
 }
 
-func SearchByDate(writer http.ResponseWriter, request *http.Request) {
-	var date string
-	err := json.NewDecoder(request.Body).Decode(&date)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	todo, todoErr := helper.TodoByDate(date)
+func UpcomingTodo(writer http.ResponseWriter, request *http.Request) {
+	//	date := time.Now()
+	date := time.Now()
+	userkey := request.Header.Get("userid")
+	todo, todoErr := helper.UpcomingTodoList(userkey, date)
 	if todoErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
@@ -123,6 +163,61 @@ func SearchByDate(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(jsonData)
 }
 
-func Logout(writer http.ResponseWriter, request *http.Request) {
-
+func ExpiredTodo(writer http.ResponseWriter, request *http.Request) {
+	date := time.Now()
+	userKey := request.Header.Get("userid")
+	todo, err := helper.ExpiredTodo(userKey, date)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonData, jsonErr := json.Marshal(todo)
+	if jsonErr != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	writer.Write(jsonData)
 }
+
+func Logout(writer http.ResponseWriter, request *http.Request) {
+	//claim:=
+	apikey := request.Header.Get("x-api-key")
+	err := helper.DeleteSession(apikey)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	user := request.Header.Get("userid")
+	writer.Write([]byte(fmt.Sprintf("%s USER LOGGED OUT SUCCESSFULLY", user)))
+}
+
+//cookie
+//
+//func CheckCookies(writer http.ResponseWriter, request *http.Request) {
+//	cookie, err := request.Cookie("token")
+//	if err != nil {
+//		if err == http.ErrNoCookie {
+//			writer.WriteHeader(http.StatusUnauthorized)
+//			return
+//		}
+//		writer.WriteHeader(http.StatusBadGateway)
+//		return
+//	}
+//	tokenStr := cookie.Value
+//	claims := &Claims{}
+//	tkn, NewErr := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+//		return jwtkey, nil
+//	})
+//	if NewErr != nil {
+//		if NewErr == jwt.ErrSignatureInvalid {
+//			writer.WriteHeader(http.StatusUnauthorized)
+//			return
+//		}
+//		writer.WriteHeader(http.StatusBadGateway)
+//		return
+//	}
+//	if !tkn.Valid {
+//		writer.WriteHeader(http.StatusUnauthorized)
+//		return
+//	}
+//}
