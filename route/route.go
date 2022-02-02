@@ -6,7 +6,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi/v5"
 	"net/http"
-	"todoproject/database/helper"
 	"todoproject/handler"
 )
 
@@ -25,7 +24,7 @@ var mySigningKey = []byte("secret_key")
 func Middleware(handle http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		apikey := request.Header.Get("x-api-key")
-		userid := request.Header.Get("userid")
+		//userid := request.Header.Get("userid")
 		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("There was an error")
@@ -37,12 +36,12 @@ func Middleware(handle http.HandlerFunc) http.HandlerFunc {
 
 		}
 		if token.Valid {
-			user, sessionErr := helper.CreateSession(apikey, userid)
-			if sessionErr != nil {
-				writer.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			ctx := context.WithValue(request.Context(), userContext, user)
+			//user, sessionErr := helper.CheckSession(apikey, userid)
+			//if sessionErr != nil {
+			//	writer.WriteHeader(http.StatusBadRequest)
+			//	return
+			//}
+			ctx := context.WithValue(request.Context(), userContext, "")
 			handle.ServeHTTP(writer, request.WithContext(ctx))
 			handle(writer, request)
 
@@ -94,7 +93,8 @@ func Route() *Server {
 		todo.Get("/alltask", Middleware(handler.AllTask))
 		todo.Get("/upcomingtodo", Middleware(handler.UpcomingTodo))
 		todo.Get("/expiredtodo", Middleware(handler.ExpiredTodo))
-		todo.Delete("/logout", Middleware(handler.Logout))
+		todo.Get("/logout", Middleware(handler.Logout))
+		todo.Post("/forgetpassword", handler.ForgetPassword)
 
 	})
 	return &Server{router}

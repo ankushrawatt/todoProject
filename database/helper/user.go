@@ -2,6 +2,7 @@ package helper
 
 import (
 	"database/sql"
+	"errors"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 	"todoproject/database"
@@ -125,5 +126,25 @@ func DeleteSession(token string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func ForgetPass(email, userid, mobile, password string) error {
+	SQL := `SELECT userid, mobile FROM users WHERE email=$1`
+	var id, mob string
+	err := database.Todo.QueryRowx(SQL, email).Scan(&id, &mob)
+	if err != nil {
+		return err
+	}
+	if mob == mobile && userid == id {
+		newSQL := `UPDATE users SET password=$1 where userid=$2`
+		_, newErr := database.Todo.Exec(newSQL, password, userid)
+		if newErr != nil {
+			return newErr
+		}
+	} else {
+		return errors.New("WRONG CREDENTIALS")
+	}
+
 	return nil
 }

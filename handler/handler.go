@@ -90,6 +90,7 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte(fmt.Sprintf("WRONG CREDENTIALS")))
 		return
 	}
+
 	_, jsonErr := json.Marshal(loginUser)
 	if jsonErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
@@ -100,7 +101,13 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusBadGateway)
 		return
 	}
+	_, sessionErr := helper.CreateSession(token, loginUser)
+	if sessionErr != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	writer.Write([]byte(fmt.Sprintf("Tokken: %s", token)))
+
 	//writer.Write(jsonData)
 
 	//trying cookie
@@ -196,9 +203,23 @@ func ExpiredTodo(writer http.ResponseWriter, request *http.Request) {
 }
 
 func Logout(writer http.ResponseWriter, request *http.Request) {
-	//claim:=
+	//	var token string
 
 	//writer.Write([]byte(fmt.Sprintf("%s USER LOGGED OUT SUCCESSFULLY", user)))
+}
+
+func ForgetPassword(writer http.ResponseWriter, request *http.Request) {
+	var cred model.FogetPassword
+	err := json.NewDecoder(request.Body).Decode(&cred)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	NewErr := helper.ForgetPass(cred.Email, cred.Userid, cred.MobileNo, cred.Password)
+	if NewErr != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 //cookie

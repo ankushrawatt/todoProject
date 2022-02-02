@@ -21,3 +21,10 @@ type TodoTask struct {
 	Des  string `db:"des" json:"des"`
 	Date string `db:"date" json:"date"`
 }
+
+type FogetPassword struct {
+	Email    string `db:"email" json:"email"`
+	Userid   string `db:"userid" json:"userid"`
+	Password string `db:"password" json:"password"`
+	MobileNo string `db:"mobile" json:"mobileNo"`
+}
