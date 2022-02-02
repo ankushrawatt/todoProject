@@ -3,6 +3,7 @@ package route
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"todoproject/database/helper"
@@ -21,62 +22,67 @@ type Server struct {
 
 var mySigningKey = []byte("secret_key")
 
-//func Middleware(handle http.HandlerFunc) http.HandlerFunc {
-//	return func(writer http.ResponseWriter, request *http.Request) {
-//		apikey := request.Header.Get("x-api-key")
-//		userid := request.Header.Get("userid")
-//		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
-//			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-//				return nil, fmt.Errorf("There was an error")
-//			}
-//			return mySigningKey, nil
-//		})
-//		if TokenErr != nil {
-//			fmt.Fprintf(writer, TokenErr.Error())
-//
-//		}
-//		if token.Valid {
-//			user := helper.GetUserSession(apikey, userid)
-//
-//			ctx := context.WithValue(request.Context(), userContext, user)
-//			handle.ServeHTTP(writer, request.WithContext(ctx))
-//			handle(writer, request)
-//
-//		} else {
-//			fmt.Fprintf(writer, " PLEASE LOGIN AGAIN")
-//
-//		}
+func Middleware(handle http.HandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		apikey := request.Header.Get("x-api-key")
+		userid := request.Header.Get("userid")
+		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("There was an error")
+			}
+			return mySigningKey, nil
+		})
+		if TokenErr != nil {
+			fmt.Fprintf(writer, TokenErr.Error())
 
-//user, err := helper.GetUserSession(apikey, userid)
-//if err != nil {
-//	writer.WriteHeader(http.StatusUnauthorized)
-//	writer.Write([]byte(fmt.Sprintf("Please Login")))
-//	panic(err)
-//}
-//ctx := context.WithValue(request.Context(), userContext, user)
-//handle.ServeHTTP(writer, request.WithContext(ctx))
+		}
+		if token.Valid {
+			user, sessionErr := helper.CreateSession(apikey, userid)
+			if sessionErr != nil {
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			ctx := context.WithValue(request.Context(), userContext, user)
+			handle.ServeHTTP(writer, request.WithContext(ctx))
+			handle(writer, request)
+
+		} else {
+			fmt.Fprintf(writer, " PLEASE LOGIN AGAIN")
+			return
+		}
+
+		//user, err := helper.CreateSession(apikey, userid)
+		//if err != nil {
+		//	writer.WriteHeader(http.StatusUnauthorized)
+		//	writer.Write([]byte(fmt.Sprintf("Please Login")))
+		//	panic(err)
+		//}
+		//ctx := context.WithValue(request.Context(), userContext, user)
+		//handle.ServeHTTP(writer, request.WithContext(ctx))
+	}
+}
 
 //COOKIES
 //	handler.CheckCookies(writer, request)
 //	}
 //}
 
-func Middleware(handle http.HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		apikey := request.Header.Get("x-api-key")
-		//fmt.Println(apikey)
-		//	userid := request.Header.Get("userid")
-		user, err := helper.GetUserSession(apikey)
-		if err != nil || user == "" {
-			writer.WriteHeader(http.StatusUnauthorized)
-			writer.Write([]byte(fmt.Sprintf("Please Login")))
-			panic(err)
-		}
-		fmt.Println(user)
-		ctx := context.WithValue(request.Context(), userContext, user)
-		handle.ServeHTTP(writer, request.WithContext(ctx))
-	}
-}
+//SESSION TABLE
+//func Middleware(handle http.HandlerFunc) http.HandlerFunc {
+//	return func(writer http.ResponseWriter, request *http.Request) {
+//		apikey := request.Header.Get("x-api-key")
+//		//fmt.Println(apikey)
+//		//	userid := request.Header.Get("userid")
+//		user, err := helper.GetUserSession(apikey)
+//		if err != nil || user == "" {
+//			writer.WriteHeader(http.StatusUnauthorized)
+//			writer.Write([]byte(fmt.Sprintf("Please Login")))
+//			panic(err)
+//		}
+//		ctx := context.WithValue(request.Context(), userContext, user)
+//		handle.ServeHTTP(writer, request.WithContext(ctx))
+//	}
+//}POST
 
 func Route() *Server {
 	router := chi.NewRouter()

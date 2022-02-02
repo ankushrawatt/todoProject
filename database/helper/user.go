@@ -33,24 +33,26 @@ func NewUser(id, email, userid, password, firstname, lastname, mobile string) (s
 
 }
 
-func GetUserSession(token string) (string, error) {
-	SQL := `SELECT userid from session where token=$1`
-	var user string
-	err := database.Todo.Get(&user, SQL, token)
-	if err != nil {
-		return "", err
-	}
-	return user, nil
-}
+//SESSION TABLE
+//func GetUserSession(token string) (string, error) {
+//	SQL := `SELECT userid from session where token=$1`
+//	var user string
+//	err := database.Todo.Get(&user, SQL, token)
+//	if err != nil {
+//		return "", err
+//	}
+//	return user, nil
+//}
 
-func CreateSession(id, userid string) error {
+//SESSION table
+func CreateSession(id, userid string) (string, error) {
 	SQL := `INSERT INTO session(userid,token)VALUES($1,$2) RETURNING TOKEN`
 	var token string
 	err := database.Todo.Get(&token, SQL, userid, id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return token, nil
 
 }
 
@@ -97,7 +99,7 @@ func TodoList(userid string) ([]model.TodoTask, error) {
 }
 
 func UpcomingTodoList(userid string, date time.Time) ([]model.TodoTask, error) {
-	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date>$1`
+	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date>$2`
 	user := make([]model.TodoTask, 0)
 	err := database.Todo.Select(&user, SQL, userid, date)
 	if err != nil {
@@ -107,7 +109,7 @@ func UpcomingTodoList(userid string, date time.Time) ([]model.TodoTask, error) {
 }
 
 func ExpiredTodo(userid string, date time.Time) ([]model.TodoTask, error) {
-	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date=<$2`
+	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date<$2`
 	user := make([]model.TodoTask, 0)
 	err := database.Todo.Select(&user, SQL, userid, date)
 	if err != nil {
@@ -116,6 +118,7 @@ func ExpiredTodo(userid string, date time.Time) ([]model.TodoTask, error) {
 	return user, nil
 }
 
+//SESSION TABLE
 func DeleteSession(token string) error {
 	SQL := `DELETE FROM session WHERE token=$1`
 	_, err := database.Todo.Exec(SQL, token)

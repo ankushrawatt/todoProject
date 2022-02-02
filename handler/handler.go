@@ -19,26 +19,42 @@ type Claims struct {
 }
 
 func CreateToken(userid string) (string, error) {
-	id := uuid.New()
-	err := helper.CreateSession(id.String(), userid)
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["authorized"] = true
+	claims["user"] = userid
+	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+	tokenString, err := token.SignedString(mySigningKey)
 	if err != nil {
+		fmt.Errorf("Something went wrong %s", err.Error())
 		return "", err
 	}
-
-	return id.String(), nil
-
-	//token := jwt.New(jwt.SigningMethodHS256)
-	//claims := token.Claims.(jwt.MapClaims)
-	//claims["authorized"] = true
-	//claims["user"] = userid
-	//claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
-	//tokenString, err := token.SignedString(mySigningKey)
-	//if err != nil {
-	//	fmt.Errorf("Something went wrong %s", err.Error())
-	//	return "", err
-	//}
-	//return tokenString, nil
+	return tokenString, nil
 }
+
+//session
+//func CreateToken(userid string) (string, error) {
+
+//id := uuid.New()
+//err := helper.CreateSession(id.String(), userid)
+//if err != nil {
+//	return "", err
+//}
+//
+//return id.String(), nil
+
+//token := jwt.New(jwt.SigningMethodHS256)
+//claims := token.Claims.(jwt.MapClaims)
+//claims["authorized"] = true
+//claims["user"] = userid
+//claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+//tokenString, err := token.SignedString(mySigningKey)
+//if err != nil {
+//	fmt.Errorf("Something went wrong %s", err.Error())
+//	return "", err
+//}
+//return tokenString, nil
+//}
 
 func Signup(writer http.ResponseWriter, request *http.Request) {
 	var user model.User
@@ -181,14 +197,8 @@ func ExpiredTodo(writer http.ResponseWriter, request *http.Request) {
 
 func Logout(writer http.ResponseWriter, request *http.Request) {
 	//claim:=
-	apikey := request.Header.Get("x-api-key")
-	err := helper.DeleteSession(apikey)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	user := request.Header.Get("userid")
-	writer.Write([]byte(fmt.Sprintf("%s USER LOGGED OUT SUCCESSFULLY", user)))
+
+	//writer.Write([]byte(fmt.Sprintf("%s USER LOGGED OUT SUCCESSFULLY", user)))
 }
 
 //cookie
