@@ -28,3 +28,7 @@ type FogetPassword struct {
 	Password string `db:"password" json:"password"`
 	MobileNo string `db:"mobile" json:"mobileNo"`
 }
+
+type DeleteTask struct {
+	Task string `db:"task" json:"task"`
+}

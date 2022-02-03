@@ -7,6 +7,7 @@ import (
 	"time"
 	"todoproject/database"
 	"todoproject/model"
+	"todoproject/utils"
 )
 
 func HashPassword(password string) string {
@@ -57,6 +58,7 @@ func CreateSession(id, userid string) (string, error) {
 
 }
 
+// Login function takes email and password, returns userID
 func Login(email, password string) (string, error) {
 	SQL := `SELECT userid,password FROM users WHERE email=$1`
 	var user, Hashpass string
@@ -87,12 +89,10 @@ func CreateTodo(des, userid, task, date string) (string, error) {
 }
 
 func TodoList(userid string) ([]model.TodoTask, error) {
-	SQL := `SELECT task,des,date from todo WHERE userid=$1`
+	SQL := `SELECT id,task,des,date from todo WHERE userid=$1`
 	user := make([]model.TodoTask, 0)
 	err := database.Todo.Select(&user, SQL, userid)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
+	utils.CheckError(err)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -100,22 +100,18 @@ func TodoList(userid string) ([]model.TodoTask, error) {
 }
 
 func UpcomingTodoList(userid string, date time.Time) ([]model.TodoTask, error) {
-	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date>$2`
+	SQL := `SELECT id,task,des, date FROM todo WHERE userid=$1 AND date>$2`
 	user := make([]model.TodoTask, 0)
 	err := database.Todo.Select(&user, SQL, userid, date)
-	if err != nil {
-		return nil, err
-	}
+	utils.CheckError(err)
 	return user, nil
 }
 
 func ExpiredTodo(userid string, date time.Time) ([]model.TodoTask, error) {
-	SQL := `SELECT task,des, date FROM todo WHERE userid=$1 AND date<$2`
+	SQL := `SELECT id,task,des, date FROM todo WHERE userid=$1 AND date<$2::DATE`
 	user := make([]model.TodoTask, 0)
 	err := database.Todo.Select(&user, SQL, userid, date)
-	if err != nil {
-		return nil, err
-	}
+	utils.CheckError(err)
 	return user, nil
 }
 
@@ -123,9 +119,7 @@ func ExpiredTodo(userid string, date time.Time) ([]model.TodoTask, error) {
 func DeleteSession(token string) error {
 	SQL := `DELETE FROM session WHERE token=$1`
 	_, err := database.Todo.Exec(SQL, token)
-	if err != nil {
-		return err
-	}
+	utils.CheckError(err)
 	return nil
 }
 
@@ -133,18 +127,40 @@ func ForgetPass(email, userid, mobile, password string) error {
 	SQL := `SELECT userid, mobile FROM users WHERE email=$1`
 	var id, mob string
 	err := database.Todo.QueryRowx(SQL, email).Scan(&id, &mob)
-	if err != nil {
-		return err
-	}
+	utils.CheckError(err)
 	if mob == mobile && userid == id {
 		newSQL := `UPDATE users SET password=$1 where userid=$2`
-		_, newErr := database.Todo.Exec(newSQL, password, userid)
-		if newErr != nil {
-			return newErr
-		}
+		pass := HashPassword(password)
+		_, newErr := database.Todo.Exec(newSQL, pass, userid)
+		utils.CheckError(newErr)
 	} else {
 		return errors.New("WRONG CREDENTIALS")
 	}
 
+	return nil
+}
+
+func Deletetask(userid, task string) error {
+	SQL := `DELETE FROM todo WHERE task=$1 AND userid=$2`
+	_, err := database.Todo.Exec(SQL, task, userid)
+	utils.CheckError(err)
+	return nil
+}
+
+func UpdateTask(task, userid, des, date string) error {
+	SQL := `UPDATE todo SET des=$1,date=$2 WHERE userid=$3 AND task=$4`
+	newDate, err := time.Parse("01-02-2006", date)
+	utils.CheckError(err)
+	_, newErr := database.Todo.Exec(SQL, des, newDate, userid, task)
+	utils.CheckError(newErr)
+	return nil
+}
+
+func DeleteAccount(email, password, userid string) error {
+	user, err := Login(email, password)
+	utils.CheckError(err)
+	SQL := `DELETE FROM users WHERE userid=$1`
+	_, newErr := database.Todo.Exec(SQL, user)
+	utils.CheckError(newErr)
 	return nil
 }

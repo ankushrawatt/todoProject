@@ -9,6 +9,7 @@ import (
 	"time"
 	"todoproject/database/helper"
 	"todoproject/model"
+	"todoproject/utils"
 )
 
 var mySigningKey = []byte("secret_key")
@@ -25,10 +26,7 @@ func CreateToken(userid string) (string, error) {
 	claims["user"] = userid
 	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
 	tokenString, err := token.SignedString(mySigningKey)
-	if err != nil {
-		fmt.Errorf("Something went wrong %s", err.Error())
-		return "", err
-	}
+	utils.CheckError(err)
 	return tokenString, nil
 }
 
@@ -59,16 +57,10 @@ func CreateToken(userid string) (string, error) {
 func Signup(writer http.ResponseWriter, request *http.Request) {
 	var user model.User
 	err := json.NewDecoder(request.Body).Decode(&user)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.CheckError(err)
 	id := uuid.New()
 	userId, NewErr := helper.NewUser(id.String(), user.Email, user.UserId, user.Password, user.FirstName, user.LastName, user.MobileNo)
-	if NewErr != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	utils.CheckError(NewErr)
 	//_, jsonErr := json.Marshal(userId)
 	//if jsonErr != nil {
 	//	writer.WriteHeader(http.StatusInternalServerError)
@@ -80,16 +72,9 @@ func Signup(writer http.ResponseWriter, request *http.Request) {
 func Login(writer http.ResponseWriter, request *http.Request) {
 	var Cred model.LoginUser
 	err := json.NewDecoder(request.Body).Decode(&Cred)
-	if err != nil {
-		writer.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	utils.CheckError(err)
 	loginUser, loginErr := helper.Login(Cred.Email, Cred.Password)
-	if loginErr != nil {
-		writer.WriteHeader(http.StatusUnauthorized)
-		writer.Write([]byte(fmt.Sprintf("WRONG CREDENTIALS")))
-		return
-	}
+	utils.CheckError(loginErr)
 
 	_, jsonErr := json.Marshal(loginUser)
 	if jsonErr != nil {
@@ -97,15 +82,9 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	token, tokenErr := CreateToken(loginUser)
-	if tokenErr != nil {
-		writer.WriteHeader(http.StatusBadGateway)
-		return
-	}
+	utils.CheckError(tokenErr)
 	_, sessionErr := helper.CreateSession(token, loginUser)
-	if sessionErr != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	utils.CheckError(sessionErr)
 	writer.Write([]byte(fmt.Sprintf("Tokken: %s", token)))
 
 	//writer.Write(jsonData)
@@ -137,30 +116,27 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 func CreateTask(writer http.ResponseWriter, request *http.Request) {
 	var task model.TodoTask
 	err := json.NewDecoder(request.Body).Decode(&task)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.CheckError(err)
 	userkey := request.Header.Get("userid")
 	todo, todoErr := helper.CreateTodo(task.Des, userkey, task.Task, task.Date)
-	if todoErr != nil {
-		writer.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	utils.CheckError(todoErr)
 	writer.Write([]byte(fmt.Sprintf("New task created %s", todo)))
 }
 func UpdateTask(writer http.ResponseWriter, request *http.Request) {
-
+	var task model.TodoTask
+	err := json.NewDecoder(request.Body).Decode(&task)
+	utils.CheckError(err)
+	userid := request.Header.Get("userid")
+	newErr := helper.UpdateTask(task.Task, userid, task.Des, task.Date)
+	utils.CheckError(newErr)
+	writer.Write([]byte(fmt.Sprintf("%s task Updated successfulluy", task)))
 }
 
 func AllTask(writer http.ResponseWriter, request *http.Request) {
 
 	userkey := request.Header.Get("userid")
 	tasks, taskErr := helper.TodoList(userkey)
-	if taskErr != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.CheckError(taskErr)
 	jsonData, jsonErr := json.Marshal(tasks)
 	if jsonErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
@@ -180,7 +156,7 @@ func UpcomingTodo(writer http.ResponseWriter, request *http.Request) {
 	}
 	jsonData, jsonErr := json.Marshal(todo)
 	if jsonErr != nil {
-		writer.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	writer.Write(jsonData)
@@ -190,36 +166,66 @@ func ExpiredTodo(writer http.ResponseWriter, request *http.Request) {
 	date := time.Now()
 	userKey := request.Header.Get("userid")
 	todo, err := helper.ExpiredTodo(userKey, date)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	jsonData, jsonErr := json.Marshal(todo)
-	if jsonErr != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	writer.Write(jsonData)
+	utils.CheckError(err)
+	//jsonData, jsonErr := json.Marshal(todo)
+	//if jsonErr != nil {
+	//	writer.WriteHeader(http.StatusBadRequest)
+	//	return
+	//}
+
+	err = json.NewEncoder(writer).Encode(todo)
+	utils.CheckError(err)
+	//writer.WriteHeader(http.StatusCreated)
+	//writer.Write(jsonData)
 }
 
 func Logout(writer http.ResponseWriter, request *http.Request) {
-	//	var token string
 
 	//writer.Write([]byte(fmt.Sprintf("%s USER LOGGED OUT SUCCESSFULLY", user)))
+
+	//userid := request.Header.Get("userid")
+	//var token *jwt.Token
+	//claims := token.Claims.(jwt.MapClaims)
+	//claims["authorized"] = true
+	//claims["user"] = userid
+	//claims["exp"] = time.Now().Unix()
+	//_, err := token.SignedString(mySigningKey)
+	//if err != nil {
+	//	fmt.Errorf("Something went wrong %s", err.Error())
+	//	return
+	//}
+	//return
+
 }
 
-func ForgetPassword(writer http.ResponseWriter, request *http.Request) {
+func ResetPassword(writer http.ResponseWriter, request *http.Request) {
 	var cred model.FogetPassword
 	err := json.NewDecoder(request.Body).Decode(&cred)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.CheckError(err)
 	NewErr := helper.ForgetPass(cred.Email, cred.Userid, cred.MobileNo, cred.Password)
-	if NewErr != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.CheckError(NewErr)
+}
+
+func DeleteTodo(writer http.ResponseWriter, request *http.Request) {
+	var task model.DeleteTask
+	err := json.NewDecoder(request.Body).Decode(&task)
+	utils.CheckError(err)
+	userid := request.Header.Get("userid")
+	newErr := helper.Deletetask(userid, task.Task)
+	utils.CheckError(newErr)
+	writer.Write([]byte(fmt.Sprintf("%s task deleted", task)))
+}
+
+//Delete user error because of foreign key constraint
+
+func DeleteUser(writer http.ResponseWriter, request *http.Request) {
+	var credentials model.LoginUser
+	err := json.NewDecoder(request.Body).Decode(&credentials)
+	utils.CheckError(err)
+	userid := request.Header.Get("userid")
+	newErr := helper.DeleteAccount(credentials.Email, credentials.Password, userid)
+	utils.CheckError(newErr)
+	writer.Write([]byte(fmt.Sprintf("%s user deleted", userid)))
 }
 
 //cookie

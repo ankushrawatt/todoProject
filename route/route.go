@@ -21,8 +21,8 @@ type Server struct {
 
 var mySigningKey = []byte("secret_key")
 
-func Middleware(handle http.HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		apikey := request.Header.Get("x-api-key")
 		//userid := request.Header.Get("userid")
 		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
@@ -42,23 +42,13 @@ func Middleware(handle http.HandlerFunc) http.HandlerFunc {
 			//	return
 			//}
 			ctx := context.WithValue(request.Context(), userContext, "")
-			handle.ServeHTTP(writer, request.WithContext(ctx))
-			handle(writer, request)
+			next.ServeHTTP(writer, request.WithContext(ctx))
 
 		} else {
 			fmt.Fprintf(writer, " PLEASE LOGIN AGAIN")
 			return
 		}
-
-		//user, err := helper.CreateSession(apikey, userid)
-		//if err != nil {
-		//	writer.WriteHeader(http.StatusUnauthorized)
-		//	writer.Write([]byte(fmt.Sprintf("Please Login")))
-		//	panic(err)
-		//}
-		//ctx := context.WithValue(request.Context(), userContext, user)
-		//handle.ServeHTTP(writer, request.WithContext(ctx))
-	}
+	})
 }
 
 //COOKIES
@@ -85,17 +75,29 @@ func Middleware(handle http.HandlerFunc) http.HandlerFunc {
 
 func Route() *Server {
 	router := chi.NewRouter()
-	router.Route("/todo", func(todo chi.Router) {
-		todo.Post("/signup", handler.Signup)
-		todo.Post("/login", handler.Login)
-		todo.Post("/createtask", Middleware(handler.CreateTask))
-		todo.Post("/updatetask", Middleware(handler.UpdateTask))
-		todo.Get("/alltask", Middleware(handler.AllTask))
-		todo.Get("/upcomingtodo", Middleware(handler.UpcomingTodo))
-		todo.Get("/expiredtodo", Middleware(handler.ExpiredTodo))
-		todo.Get("/logout", Middleware(handler.Logout))
-		todo.Post("/forgetpassword", handler.ForgetPassword)
+	router.Route("/", func(r chi.Router) {
+		r.Route("/todo", func(todo chi.Router) {
+			todo.Use(AuthMiddleware)
+			todo.Get("/", handler.AllTask)
+			todo.Post("/", handler.CreateTask)
+			todo.Get("/upcoming", handler.UpcomingTodo)
+			todo.Get("/expired", handler.ExpiredTodo)
 
+			todo.Route("/{id}", func(todoAction chi.Router) {
+				todoAction.Put("/", handler.UpdateTask)
+				todoAction.Delete("/", handler.DeleteTodo)
+			})
+		})
+		r.Route("/user", func(userRoute chi.Router) {
+			userRoute.Use(AuthMiddleware)
+			userRoute.Delete("/", handler.DeleteUser)
+			userRoute.Get("/", handler.Logout)
+		})
+		r.Route("/public", func(public chi.Router) {
+			public.Post("/signup", handler.Signup)
+			public.Post("/login", handler.Login)
+			public.Post("/forget_password", handler.ResetPassword)
+		})
 	})
 	return &Server{router}
 }

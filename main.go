@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"todoproject/database"
 	"todoproject/route"
+	"todoproject/utils"
 )
 
 const (
@@ -16,14 +17,10 @@ const (
 
 func main() {
 	err := database.Connect(host, port, dbname, user, password, database.SSLModeDisable)
-	if err != nil {
-		panic(err)
-	}
+	utils.CheckError(err)
 	fmt.Println("Connected....")
 	srv := route.Route()
 	connErr := srv.Run(":5555")
-	if connErr != nil {
-		panic(err)
-	}
+	utils.CheckError(connErr)
 
 }
