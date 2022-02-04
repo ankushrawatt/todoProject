@@ -58,12 +58,12 @@ func UpdateTodo(writer http.ResponseWriter, request *http.Request) {
 }
 
 func DeleteTodo(writer http.ResponseWriter, request *http.Request) {
-	var taskID int
-	err := json.NewDecoder(request.Body).Decode(&taskID)
+	var task model.DeleteTodo
+	err := json.NewDecoder(request.Body).Decode(&task)
 	utils.CheckError(err)
 	userID := GetUserId(request)
-	newErr := helper.Deletetask(userID, taskID)
+	newErr := helper.Deletetask(userID, task.ID)
 	utils.CheckError(newErr)
 	//writer.Write([]byte(fmt.Sprintf("%s task deleted", task)))
-	utils.Encoder(writer, taskID)
+	utils.Encoder(writer, task.ID)
 }
