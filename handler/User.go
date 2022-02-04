@@ -29,12 +29,12 @@ func CreateToken(userid string) (string, error) {
 	return tokenString, nil
 }
 
+//GetUserId returns userID of user
 func GetUserId(request *http.Request) string {
 	token := request.Header.Get("x-api-key")
 	userID, err := helper.GetUser(token)
 	utils.CheckError(err)
 	return userID
-	//return ""
 }
 
 func Signup(writer http.ResponseWriter, request *http.Request) {
@@ -101,34 +101,3 @@ func DeleteUser(writer http.ResponseWriter, request *http.Request) {
 	//writer.Write([]byte(fmt.Sprintf("%s user deleted", userid)))
 	utils.Encoder(writer, userID)
 }
-
-//cookie
-//
-//func CheckCookies(writer http.ResponseWriter, request *http.Request) {
-//	cookie, err := request.Cookie("token")
-//	if err != nil {
-//		if err == http.ErrNoCookie {
-//			writer.WriteHeader(http.StatusUnauthorized)
-//			return
-//		}
-//		writer.WriteHeader(http.StatusBadGateway)
-//		return
-//	}
-//	tokenStr := cookie.Value
-//	claims := &Claims{}
-//	tkn, NewErr := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-//		return jwtkey, nil
-//	})
-//	if NewErr != nil {
-//		if NewErr == jwt.ErrSignatureInvalid {
-//			writer.WriteHeader(http.StatusUnauthorized)
-//			return
-//		}
-//		writer.WriteHeader(http.StatusBadGateway)
-//		return
-//	}
-//	if !tkn.Valid {
-//		writer.WriteHeader(http.StatusUnauthorized)
-//		return
-//	}
-//}

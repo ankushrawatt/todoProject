@@ -11,28 +11,6 @@ type Server struct {
 	chi.Router
 }
 
-//COOKIES
-//	handler.CheckCookies(writer, request)
-//	}
-//}
-
-//SESSION TABLE
-//func Middleware(handle http.HandlerFunc) http.HandlerFunc {
-//	return func(writer http.ResponseWriter, request *http.Request) {
-//		apikey := request.Header.Get("x-api-key")
-//		//fmt.Println(apikey)
-//		//	userid := request.Header.Get("userid")
-//		user, err := helper.GetUserSession(apikey)
-//		if err != nil || user == "" {
-//			writer.WriteHeader(http.StatusUnauthorized)
-//			writer.Write([]byte(fmt.Sprintf("Please Login")))
-//			panic(err)
-//		}
-//		ctx := context.WithValue(request.Context(), userContext, user)
-//		handle.ServeHTTP(writer, request.WithContext(ctx))
-//	}
-//}POST
-
 func Route() *Server {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
