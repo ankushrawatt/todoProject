@@ -21,7 +21,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		//userid := request.Header.Get("userid")
 		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("There was an error")
+				return nil, fmt.Errorf("there was an error")
 			}
 			return mySigningKey, nil
 		})
@@ -37,6 +37,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			//}
 			//	user, err := helper.GetUser(apikey)
 			//utils.CheckError(err)
+
 			ctx := context.WithValue(request.Context(), userContext, "")
 			next.ServeHTTP(writer, request.WithContext(ctx))
 

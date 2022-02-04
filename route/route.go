@@ -38,13 +38,13 @@ func Route() *Server {
 	router.Route("/", func(r chi.Router) {
 		r.Route("/todo", func(todo chi.Router) {
 			todo.Use(middleware.AuthMiddleware)
-			todo.Get("/", handler.AllTask)
-			todo.Post("/", handler.CreateTask)
+			todo.Get("/", handler.AllTodo)
+			todo.Post("/", handler.CreateTodo)
 			todo.Get("/upcoming", handler.UpcomingTodo)
 			todo.Get("/expired", handler.ExpiredTodo)
 
 			todo.Route("/{id}", func(todoAction chi.Router) {
-				todoAction.Put("/", handler.UpdateTask)
+				todoAction.Put("/", handler.UpdateTodo)
 				todoAction.Delete("/", handler.DeleteTodo)
 			})
 		})
