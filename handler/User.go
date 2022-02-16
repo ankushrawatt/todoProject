@@ -64,22 +64,23 @@ func Login(writer http.ResponseWriter, request *http.Request) {
 }
 
 //
-//func Logout(writer http.ResponseWriter, request *http.Request) {
-//
-//userid := request.Header.Get("userid")
-//var token *jwt.Token
-//claims := token.Claims.(jwt.MapClaims)
-//claims["authorized"] = true
-//claims["user"] = userid
-//claims["exp"] = time.Now().Unix()
-//_, err := token.SignedString(mySigningKey)
-//if err != nil {
-//	fmt.Errorf("Something went wrong %s", err.Error())
-//	return
-//}
-//return
+func Logout(writer http.ResponseWriter, request *http.Request) {
 
-//}
+	//userid := request.Header.Get("userid")
+	//request.Header.Set("x-api-key", "nil")
+	//var token *jwt.Token
+	//claims := token.Claims.(jwt.MapClaims)
+	//claims["authorized"] = true
+	//claims["user"] = userid
+	//claims["exp"] = time.Now().Unix()
+	//_, err := token.SignedString(mySigningKey)
+	//if err != nil {
+	//	fmt.Errorf("Something went wrong %s", err.Error())
+	//	return
+	//}
+	return
+
+}
 
 //ResetPassword helps user to reset password
 func ResetPassword(writer http.ResponseWriter, request *http.Request) {

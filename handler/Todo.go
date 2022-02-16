@@ -21,11 +21,13 @@ func CreateTodo(writer http.ResponseWriter, request *http.Request) {
 }
 
 func AllTodo(writer http.ResponseWriter, request *http.Request) {
-
+	str := request.Context().Value("claims")
+	fmt.Println(str)
 	userID := GetUserId(request)
 	todo, taskErr := helper.TodoList(userID)
 	utils.CheckError(taskErr)
 	utils.Encoder(writer, todo)
+
 }
 func UpcomingTodo(writer http.ResponseWriter, request *http.Request) {
 

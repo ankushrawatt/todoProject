@@ -29,7 +29,7 @@ func Route() *Server {
 		r.Route("/user", func(userRoute chi.Router) {
 			userRoute.Use(middleware.AuthMiddleware)
 			userRoute.Delete("/", handler.DeleteUser)
-			//userRoute.Get("/", handler.Logout)
+			userRoute.Get("/", handler.Logout)
 		})
 		r.Route("/public", func(public chi.Router) {
 			public.Post("/signup", handler.Signup)

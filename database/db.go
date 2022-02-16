@@ -19,7 +19,7 @@ const (
 )
 
 func Connect(host, port, dbname, user, password string, sslMode SSLMode) error {
-	conn := fmt.Sprintf("host=%s port=%s user=%s password=%s  dbname=%s sslmode=%s", host, port, user, password, dbname, SSLModeDisable)
+	conn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", host, port, user, password, dbname, SSLModeDisable)
 	db, err := sqlx.Open("postgres", conn)
 	if err != nil {
 		return err

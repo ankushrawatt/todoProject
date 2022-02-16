@@ -16,10 +16,17 @@ const (
 
 var mySigningKey = []byte("secret_key")
 
+type JWTClaims struct {
+	Userid string `json:"user"`
+	//role   string `json:"role"`
+	jwt.StandardClaims
+}
+
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		apikey := request.Header.Get("x-api-key")
-		token, TokenErr := jwt.Parse(apikey, func(token *jwt.Token) (interface{}, error) {
+		claims := &JWTClaims{}
+		token, TokenErr := jwt.ParseWithClaims(apikey, claims, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("there was an error")
 			}
@@ -30,7 +37,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		}
 		if token.Valid {
-			ctx := context.WithValue(request.Context(), userContext, "")
+			fmt.Println(claims.Userid)
+			ctx := context.WithValue(request.Context(), "claims", claims.Userid)
 			next.ServeHTTP(writer, request.WithContext(ctx))
 
 		} else {
